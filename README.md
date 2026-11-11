@@ -57,7 +57,7 @@ python -m card_duel solve 12             # its answer, and how rare winning line
 python -m card_duel check 12 "Wind Up, Jab"
 python -m card_duel fight 3              # play a fight yourself
 python -m card_duel benchmark 300 200
-python -m unittest discover -s tests -t .   # 69 tests
+python -m unittest discover -s tests -t .   # 71 tests
 ```
 
 ```python
@@ -111,6 +111,12 @@ python -m card_duel export-sft data 1000 200
   are wins.
 - **Checks:** tests confirm that every worked solution scores 1.0 and that fight transcripts
   replay exactly.
+
+## Rules, cards and enemies
+
+[`docs/RULES.md`](docs/RULES.md) lists the full rules, all 15 cards and all 6 enemies with their
+intent cycles. It is generated from the engine (`python -m card_duel rules docs/RULES.md`),
+and a test fails if it drifts.
 
 ## Tasks in detail
 
