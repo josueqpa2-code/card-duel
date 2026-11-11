@@ -2,7 +2,7 @@ import json
 import unittest
 
 from card_duel.puzzles import (PROBE_HP, Puzzle, damage_value, dataset, generate, greedy_line,
-                               random_line, score_answer, score_line, _signature)
+                               lookahead_line, random_line, score_answer, score_line, _signature)
 from card_duel.solver import search_turn
 
 SEEDS = range(80)
@@ -75,6 +75,14 @@ class GenerationTest(unittest.TestCase):
         for p in self.puzzles:
             self.assertTrue(score_line(p, greedy_line(p)).legal)
             self.assertTrue(score_line(p, random_line(p, 1)).legal)
+            self.assertTrue(score_line(p, lookahead_line(p, 2)).legal)
+
+    def test_full_depth_lookahead_always_solves(self):
+        small = [p for p in self.puzzles if len(p.hand) + len(p.draw_pile) <= 6]
+        self.assertGreater(len(small), 5)
+        for p in small:
+            depth = len(p.hand) + len(p.draw_pile)
+            self.assertTrue(score_line(p, lookahead_line(p, depth)).solved, p.seed)
 
     def test_prompt_shows_the_state_and_every_card(self):
         p = self.puzzles[0]

@@ -21,7 +21,7 @@ from pathlib import Path
 
 from .baselines import GreedyPlayer, PlannerPlayer, RandomPlayer, run_fight
 from .fight import FightEnv, fight_dataset
-from .puzzles import dataset, generate, greedy_line, random_line, score_answer, score_line
+from .puzzles import dataset, generate, greedy_line, lookahead_line, random_line, score_answer, score_line
 
 
 def _puzzle(args):
@@ -59,6 +59,8 @@ def benchmark(n_puzzles: int = 300, n_fights: int = 200) -> str:
     players = {
         "random": lambda p: random_line(p, 0),
         "greedy": greedy_line,
+        "lookahead (2 cards)": lambda p: lookahead_line(p, 2),
+        "lookahead (3 cards)": lambda p: lookahead_line(p, 3),
         "exact solver": lambda p: list(p.solution),
     }
     by_diff = defaultdict(list)

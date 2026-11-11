@@ -265,6 +265,37 @@ def greedy_line(p: Puzzle) -> list[str]:
     return line
 
 
+def _best_within(b: Battle, depth: int, value) -> float:
+    best = value(b)
+    if depth == 0 or b.outcome() is not None:
+        return best
+    for name in playable_cards(b):
+        c = b.clone()
+        play_card(c, name)
+        best = max(best, _best_within(c, depth - 1, value))
+    return best
+
+
+def lookahead_line(p: Puzzle, depth: int = 2) -> list[str]:
+    """Like greedy, but each choice looks `depth` cards ahead before committing."""
+    b = p.battle()
+    value = damage_value(p.enemy_hp)
+    line: list[str] = []
+    while b.outcome() is None:
+        best_name, best_value = None, value(b)
+        for name in playable_cards(b):
+            c = b.clone()
+            play_card(c, name)
+            v = _best_within(c, depth - 1, value)
+            if v > best_value + 1e-9:
+                best_name, best_value = name, v
+        if best_name is None:
+            break
+        play_card(b, best_name)
+        line.append(best_name)
+    return line
+
+
 def random_line(p: Puzzle, seed: int) -> list[str]:
     """Play random affordable cards, ending the turn at a random point."""
     rng = Rng(mix(PUZZLE_STREAM, p.seed, seed, 7))

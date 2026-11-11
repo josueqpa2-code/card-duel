@@ -22,6 +22,8 @@ Puzzles: 300 from the test split (91 easy, 145 medium, 64 hard). Share solved:
 |---|---|---|---|---|
 | random | 10% | 6% | 0% | 6% |
 | greedy | 100% | 0% | 0% | 30% |
+| lookahead (2 cards) | 89% | 68% | 42% | 69% |
+| lookahead (3 cards) | 99% | 88% | 73% | 88% |
 | exact solver | 100% | 100% | 100% | 100% |
 
 Fights: 200 from the test split.
@@ -35,6 +37,8 @@ Fights: 200 from the test split.
 - **Puzzle difficulty is measured, not guessed.** "Easy" means a greedy player solves it.
   "Medium" and "hard" puzzles defeat the greedy player, and in hard ones fewer than 2% of all
   possible lines win.
+- **Hard puzzles need deep planning.** A player that looks 3 cards ahead before each play still
+  fails 27% of them. Only full search solves them all.
 - **The fight planner is not the ceiling.** It searches every line of the current turn but looks
   only one enemy move ahead, so there is headroom above it.
 - No language-model results are included yet.
@@ -47,7 +51,7 @@ python -m card_duel solve 12             # its answer, and how rare winning line
 python -m card_duel check 12 "Wind Up, Jab"
 python -m card_duel fight 3              # play a fight yourself
 python -m card_duel benchmark 300 200
-python -m unittest discover -s tests -t .   # 63 tests
+python -m unittest discover -s tests -t .   # 64 tests
 ```
 
 ```python
