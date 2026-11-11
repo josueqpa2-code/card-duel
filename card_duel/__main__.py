@@ -19,7 +19,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-from .baselines import GreedyPlayer, PlannerPlayer, RandomPlayer, run_fight
+from .baselines import GreedyPlayer, PlannerPlayer, RandomPlayer, TwoTurnPlanner, run_fight
 from .fight import FightEnv, fight_dataset
 from .puzzles import dataset, generate, greedy_line, lookahead_line, random_line, score_answer, score_line
 
@@ -80,7 +80,7 @@ def benchmark(n_puzzles: int = 300, n_fights: int = 200) -> str:
     specs = fight_dataset("test", n_fights)
     lines += ["", f"Fights: {len(specs)} from the test split.", "",
               "| Player | Win rate | Mean reward | Mean HP left (wins) |", "|---|---|---|---|"]
-    for player in (RandomPlayer(0), GreedyPlayer(), PlannerPlayer()):
+    for player in (RandomPlayer(0), GreedyPlayer(), PlannerPlayer(), TwoTurnPlanner()):
         results = [run_fight(s, player) for s in specs]
         wins = [r for r in results if r.won]
         hp = sum(r.hp_left for r in wins) / len(wins) if wins else 0

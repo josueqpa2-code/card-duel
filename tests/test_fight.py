@@ -1,7 +1,7 @@
 import re
 import unittest
 
-from card_duel.baselines import GreedyPlayer, PlannerPlayer, RandomPlayer, run_fight
+from card_duel.baselines import GreedyPlayer, PlannerPlayer, RandomPlayer, TwoTurnPlanner, run_fight
 from card_duel.fight import FightEnv, fight_dataset, make_fight
 from card_duel.text import parse_action
 
@@ -89,6 +89,30 @@ class FightEnvTest(unittest.TestCase):
         self.assertIn("<action>end turn</action>", text)
         for name in set(env.spec.deck):
             self.assertIn(f"- {name} [", text)
+
+
+class NoPeekingTest(unittest.TestCase):
+    def test_players_ignore_the_hidden_draw_order(self):
+        """Reordering the draw pile (same cards) must not change any player's choice."""
+        for seed in range(12):
+            for player_cls in (GreedyPlayer, PlannerPlayer, TwoTurnPlanner):
+                env = FightEnv(seed)
+                for _ in range(3):  # a few steps in, so piles and discards are mixed
+                    if env.done:
+                        break
+                    choice = player_cls().act(env)
+                    real_pile, real_seed = list(env.battle.draw_pile), env.battle.seed
+                    env.battle.draw_pile = list(reversed(real_pile))
+                    env.battle.seed = real_seed + 1
+                    self.assertEqual(player_cls().act(env), choice, (seed, player_cls.__name__))
+                    env.battle.draw_pile, env.battle.seed = real_pile, real_seed
+                    env.step(choice)
+
+    def test_two_turn_planner_is_legal_and_deterministic(self):
+        a = run_fight(3, TwoTurnPlanner())
+        b = run_fight(3, TwoTurnPlanner())
+        self.assertEqual(a, b)
+        self.assertEqual(a.illegal, 0)
 
 
 class ParseActionTest(unittest.TestCase):

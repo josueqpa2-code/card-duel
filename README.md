@@ -33,14 +33,20 @@ Fights: 200 from the test split.
 | random | 0% | 0.146 | 0.0 |
 | greedy | 43% | 0.443 | 9.3 |
 | planner | 78% | 0.554 | 11.4 |
+| planner (2 turns) | 82% | 0.560 | 10.9 |
 
 - **Puzzle difficulty is measured, not guessed.** "Easy" means a greedy player solves it.
   "Medium" and "hard" puzzles defeat the greedy player, and in hard ones fewer than 2% of all
   possible lines win.
 - **Hard puzzles need deep planning.** A player that looks 3 cards ahead before each play still
   fails 27% of them. Only full search solves them all.
-- **The fight planner is not the ceiling.** It searches every line of the current turn but looks
-  only one enemy move ahead, so there is headroom above it.
+- **The fight planners are not the ceiling.** "planner" searches every line of the current turn
+  and scores it after the enemy's reply. "planner (2 turns)" re-scores its best 6 lines by also
+  planning the next turn over 6 sampled draws.
+- **Extra search helps fights only a little:** 78% to 82% wins. Mean HP kept stays near 11 of
+  50, so a strong player can gain mostly by finishing fights with more HP.
+- **No reference player peeks.** None of them can see the hidden draw order, and a test
+  checks that reordering the draw pile never changes a choice.
 - No language-model results are included yet.
 
 ## Quick start
@@ -51,7 +57,7 @@ python -m card_duel solve 12             # its answer, and how rare winning line
 python -m card_duel check 12 "Wind Up, Jab"
 python -m card_duel fight 3              # play a fight yourself
 python -m card_duel benchmark 300 200
-python -m unittest discover -s tests -t .   # 64 tests
+python -m unittest discover -s tests -t .   # 66 tests
 ```
 
 ```python

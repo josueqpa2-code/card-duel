@@ -11,15 +11,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .cards import ATTACK, CARDS
-from .engine import Battle, end_player_turn, enemy_turn, incoming_damage, play_card, playable_cards
+from .engine import (Battle, end_player_turn, enemy_turn, incoming_damage, play_card, playable_cards,
+                     start_player_turn)
 from .enemies import Intent
 from .fight import FightEnv, FightSpec
 from .puzzles import greedy_line, random_line  # re-exported for convenience
 from .rng import Rng, mix
 from .solver import search_turn
 
-__all__ = ["RandomPlayer", "GreedyPlayer", "PlannerPlayer", "run_fight", "FightResult",
-           "greedy_line", "random_line"]
+__all__ = ["RandomPlayer", "GreedyPlayer", "PlannerPlayer", "TwoTurnPlanner", "run_fight",
+           "FightResult", "candidate_lines", "greedy_line", "random_line"]
 
 
 class RandomPlayer:
@@ -93,6 +94,79 @@ class PlannerPlayer:
         if "Scout" in res.line:
             return "play Scout"  # draw first: it costs nothing and reveals cards
         return f"play {res.line[0]}"
+
+
+def candidate_lines(start: Battle, value_fn, limit: int = 5000) -> list[tuple[float, tuple[str, ...], Battle]]:
+    """Every distinct end-of-turn position reachable this turn, with its value
+    and the shortest line that reaches it, best first."""
+    seen: dict[tuple, tuple[float, tuple[str, ...], Battle]] = {}
+    stack: list[tuple[Battle, tuple[str, ...]]] = [(start, ())]
+    while stack and len(seen) < limit:
+        state, line = stack.pop()
+        key = state.key()
+        if key in seen and len(seen[key][1]) <= len(line):
+            continue
+        seen[key] = (value_fn(state), line, state)
+        if state.outcome() is None:
+            for name in playable_cards(state):
+                child = state.clone()
+                play_card(child, name)
+                stack.append((child, line + (name,)))
+    return sorted(seen.values(), key=lambda t: (-t[0], len(t[1]), t[1]))
+
+
+class TwoTurnPlanner:
+    """Takes the planner's best few lines and judges each by also planning the
+    next turn, averaged over sampled draws. It knows the draw pile's contents
+    (shown to every player) but never its order: each sample shuffles it with
+    its own seed. Slower, and used to estimate how much headroom fights have."""
+    name = "planner (2 turns)"
+
+    def __init__(self, top_k: int = 6, samples: int = 6, seed: int = 0):
+        self.top_k, self.samples, self.seed = top_k, samples, seed
+
+    def act(self, env: FightEnv) -> str:
+        b = env.battle
+        intent, next_intent = env.intent_after(0), env.intent_after(1)
+        lines = candidate_lines(b.blind_copy(), plan_value(intent))
+        best_line, best_score = (), float("-inf")
+        for value, line, end_state in lines[: self.top_k]:
+            score = value if abs(value) >= 1e5 else self._next_turn(env, end_state, intent, next_intent)
+            if score > best_score + 1e-9:
+                best_line, best_score = line, score
+        if not best_line:
+            return "end turn"
+        if "Scout" in best_line:
+            return "play Scout"
+        return f"play {best_line[0]}"
+
+    def _next_turn(self, env: FightEnv, end_state: Battle, intent: Intent, next_intent: Intent) -> float:
+        b = env.battle
+        after = end_state.clone()
+        end_player_turn(after)
+        enemy_turn(after, intent)
+        if after.outcome() == "win":
+            return 1e6 + after.player.hp
+        if after.outcome() == "loss":
+            return -1e6
+        total = 0.0
+        for i in range(self.samples):
+            rng = Rng(mix(0x32545552, self.seed, env.spec.seed, b.turn, env.steps, i))
+            s = after.clone()
+            s.blind = False
+            pile = sorted(b.draw_pile)  # sorted first, so the real order can't leak in
+            rng.shuffle(pile)
+            drawn_now = pile[: s.pending_draws]  # cards Scout drew this turn, now discarded
+            s.draw_pile = pile[s.pending_draws:]
+            s.discard = sorted(b.discard) + list(after.discard) + drawn_now
+            s.pending_draws = 0
+            s.seed = rng.next_u64()  # a reshuffle must not reveal the real order
+            start_player_turn(s)
+            if s.outcome() == "loss":
+                total += -1e6
+                continue
+            total += search_turn(s.blind_copy(), plan_value(next_intent)).value
+        return total / self.samples
 
 
 @dataclass(frozen=True)

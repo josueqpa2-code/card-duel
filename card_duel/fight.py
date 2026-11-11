@@ -103,8 +103,12 @@ class FightEnv:
 
     @property
     def intent(self) -> Intent:
+        return self.intent_after(0)
+
+    def intent_after(self, turns: int) -> Intent:
+        """The enemy's intent `turns` enemy turns from now (0 = the one shown now)."""
         pattern = ENEMIES[self.spec.enemy].pattern
-        return pattern[self.intent_index % len(pattern)]
+        return pattern[(self.intent_index + turns) % len(pattern)]
 
     @property
     def won(self) -> bool:
