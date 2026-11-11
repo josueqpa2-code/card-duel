@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "card-duel"
+version = "0.1.0"
+description = "An original turn-based card game as an AI training and evaluation environment: exactly-solvable single-turn puzzles and full multi-turn fights with verifiable rewards."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = []
+keywords = ["reinforcement-learning", "rl-environment", "evaluation", "llm", "agents", "card-game", "verifiers"]
+
+[project.optional-dependencies]
+verifiers = ["verifiers>=0.1.3", "datasets>=2.18"]
+
+[project.scripts]
+card-duel = "card_duel.__main__:_entry"
+
+[tool.setuptools]
+packages = ["card_duel"]

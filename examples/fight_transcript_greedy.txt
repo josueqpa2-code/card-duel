@@ -1,0 +1,607 @@
+# greedy player, fight seed 2: won=False reward=0.382
+
+You are playing Card Duel, a turn-based card game. Win the fight while keeping as much HP as you can.
+
+RULES
+- You fight one enemy. Each card costs the energy shown in [brackets]. You can't play a card you can't pay for.
+- Attack damage per hit = base damage + your Might + your Charge. If the target is Cracked, multiply by 1.5 and round down. The target's Shield absorbs damage before its HP.
+- A card that hits several times works out each hit separately, with the same bonuses.
+- Charge is added to every hit of the next attack card you play, then it is used up. Unused Charge is lost when your turn ends.
+- Might is added to every hit of that fighter's attacks for the rest of the fight. Enemies can have Might too.
+- Cracked N: the fighter takes 1.5x attack damage (rounded down). It goes down by 1 at the end of that fighter's own turn.
+- Burn N: at the start of that fighter's own turn it loses N HP (Shield does not stop this), then its Burn goes down by 1.
+- Shield absorbs damage. A fighter loses all of its Shield at the start of its own turn.
+- A played card goes to the discard pile, unless it says Exhaust: then it is removed for the rest of the fight.
+- You draw from the top of the draw pile. If the draw pile is empty, the discard pile is shuffled to form a new one. Your hand holds at most 10 cards; extra draws are skipped.
+- Your turn: you lose your Shield, your Burn ticks, energy refills to its maximum and you draw 5 cards. Then you play cards. When you end your turn, your hand is discarded and your Cracked ticks.
+- Enemy turn: it loses its Shield, its Burn ticks, it does its intent (shown to you in advance), then its Cracked ticks.
+- A fighter whose HP reaches 0 is defeated at once.
+
+FIGHT
+- You have 50 HP and 3 energy per turn. The fight is lost if it lasts more than 30 turns.
+- The enemy repeats a fixed cycle of intents. Its next intent is always shown.
+- Your score: a win gives 0.5 plus up to 0.5 more for HP kept; a loss scores below 0.4.
+
+YOUR DECK
+- Jab [1 energy, attack]: Deal 6 damage.
+- Crack [2 energy, attack]: Deal 7 damage, then apply 2 Cracked.
+- Finisher [2 energy, attack]: Deal 4 damage, plus 3 for each other attack card you played earlier this turn.
+- Guard [1 energy, skill]: Gain 5 Shield.
+- Bulwark [2 energy, skill]: Gain 12 Shield.
+- Scout [0 energy, skill]: Draw 2 cards. Exhaust.
+
+Reply with exactly one action inside <action></action>: <action>play CARD NAME</action> or <action>end turn</action>.
+
+TURN 1
+You: HP 50/50, Shield 0, Energy 3, Might 0, Charge 0, Burn 0, Cracked 0
+Enemy (Iron Warden): HP 90/90, Shield 15, Might 0, Burn 0, Cracked 0
+Enemy intent: Gain 15 Shield, then Attack 6 (6 damage to you before Shield)
+Hand: Bulwark, Finisher, Guard, Jab x2
+Draw pile (5 cards, order hidden): Crack, Guard x2, Jab, Scout
+Discard pile (0 cards): empty
+Exhausted: empty
+
+>>> play Guard
+
+You played Guard.
+
+TURN 1
+You: HP 50/50, Shield 5, Energy 2, Might 0, Charge 0, Burn 0, Cracked 0
+Enemy (Iron Warden): HP 90/90, Shield 15, Might 0, Burn 0, Cracked 0
+Enemy intent: Gain 15 Shield, then Attack 6 (6 damage to you before Shield)
+Hand: Bulwark, Finisher, Jab x2
+Draw pile (5 cards, order hidden): Crack, Guard x2, Jab, Scout
+Discard pile (1 card): Guard
+Exhausted: empty
+
+>>> play Bulwark
+
+You played Bulwark.
+
+TURN 1
+You: HP 50/50, Shield 17, Energy 0, Might 0, Charge 0, Burn 0, Cracked 0
+Enemy (Iron Warden): HP 90/90, Shield 15, Might 0, Burn 0, Cracked 0
+Enemy intent: Gain 15 Shield, then Attack 6 (6 damage to you before Shield)
+Hand: Finisher, Jab x2
+Draw pile (5 cards, order hidden): Crack, Guard x2, Jab, Scout
+Discard pile (2 cards): Bulwark, Guard
+Exhausted: empty
+
+>>> end turn
+
+The enemy did: Gain 15 Shield, then Attack 6. You lost 0 HP (you had 17 Shield).
+
+TURN 2
+You: HP 50/50, Shield 0, Energy 3, Might 0, Charge 0, Burn 0, Cracked 0
+Enemy (Iron Warden): HP 90/90, Shield 15, Might 0, Burn 0, Cracked 0
+Enemy intent: Attack 14 (14 damage to you before Shield)
+Hand: Crack, Guard x2, Jab, Scout
+Draw pile (0 cards, order hidden): empty
+Discard pile (5 cards): Bulwark, Finisher, Guard, Jab x2
+Exhausted: empty
+
+>>> play Guard
+
+You played Guard.
+
+TURN 2
+You: HP 50/50, Shield 5, Energy 2, Might 0, Charge 0, Burn 0, Cracked 0
+Enemy (Iron Warden): HP 90/90, Shield 15, Might 0, Burn 0, Cracked 0
+Enemy intent: Attack 14 (14 damage to you before Shield)
+Hand: Crack, Guard, Jab, Scout
+Draw pile (0 cards, order hidden): empty
+Discard pile (6 cards): Bulwark, Finisher, Guard x2, Jab x2
+Exhausted: empty
+
+>>> play Guard
+
+You played Guard.
+
+TURN 2
+You: HP 50/50, Shield 10, Energy 1, Might 0, Charge 0, Burn 0, Cracked 0
+Enemy (Iron Warden): HP 90/90, Shield 15, Might 0, Burn 0, Cracked 0
+Enemy intent: Attack 14 (14 damage to you before Shield)
+Hand: Crack, Jab, Scout
+Draw pile (0 cards, order hidden): empty
+Discard pile (7 cards): Bulwark, Finisher, Guard x3, Jab x2
+Exhausted: empty
+
+>>> play Scout
+
+You played Scout.
+
+TURN 2
+You: HP 50/50, Shield 10, Energy 1, Might 0, Charge 0, Burn 0, Cracked 0
+Enemy (Iron Warden): HP 90/90, Shield 15, Might 0, Burn 0, Cracked 0
+Enemy intent: Attack 14 (14 damage to you before Shield)
+Hand: Crack, Guard, Jab x2
+Draw pile (5 cards, order hidden): Bulwark, Finisher, Guard x2, Jab
+Discard pile (0 cards): empty
+Exhausted: Scout
+
+>>> play Guard
+
+You played Guard.
+
+TURN 2
+You: HP 50/50, Shield 15, Energy 0, Might 0, Charge 0, Burn 0, Cracked 0
+Enemy (Iron Warden): HP 90/90, Shield 15, Might 0, Burn 0, Cracked 0
+Enemy intent: Attack 14 (14 damage to you before Shield)
+Hand: Crack, Jab x2
+Draw pile (5 cards, order hidden): Bulwark, Finisher, Guard x2, Jab
+Discard pile (1 card): Guard
+Exhausted: Scout
+
+>>> end turn
+
+The enemy did: Attack 14. You lost 0 HP (you had 15 Shield).
+
+TURN 3
+You: HP 50/50, Shield 0, Energy 3, Might 0, Charge 0, Burn 0, Cracked 0
+Enemy (Iron Warden): HP 90/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Apply 2 Cracked to you, then Attack 9 (13 damage to you before Shield)
+Hand: Bulwark, Finisher, Guard x2, Jab
+Draw pile (0 cards, order hidden): empty
+Discard pile (4 cards): Crack, Guard, Jab x2
+Exhausted: Scout
+
+>>> play Bulwark
+
+You played Bulwark.
+
+TURN 3
+You: HP 50/50, Shield 12, Energy 1, Might 0, Charge 0, Burn 0, Cracked 0
+Enemy (Iron Warden): HP 90/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Apply 2 Cracked to you, then Attack 9 (13 damage to you before Shield)
+Hand: Finisher, Guard x2, Jab
+Draw pile (0 cards, order hidden): empty
+Discard pile (5 cards): Bulwark, Crack, Guard, Jab x2
+Exhausted: Scout
+
+>>> play Jab
+
+You played Jab. The enemy lost 6 HP.
+
+TURN 3
+You: HP 50/50, Shield 12, Energy 0, Might 0, Charge 0, Burn 0, Cracked 0
+Enemy (Iron Warden): HP 84/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Apply 2 Cracked to you, then Attack 9 (13 damage to you before Shield)
+Hand: Finisher, Guard x2
+Draw pile (0 cards, order hidden): empty
+Discard pile (6 cards): Bulwark, Crack, Guard, Jab x3
+Exhausted: Scout
+
+>>> end turn
+
+The enemy did: Apply 2 Cracked to you, then Attack 9. You lost 1 HP (you had 12 Shield).
+
+TURN 4
+You: HP 49/50, Shield 0, Energy 3, Might 0, Charge 0, Burn 0, Cracked 2
+Enemy (Iron Warden): HP 84/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Gain 15 Shield, then Attack 6 (9 damage to you before Shield)
+Hand: Bulwark, Crack, Finisher, Guard, Jab
+Draw pile (4 cards, order hidden): Guard x2, Jab x2
+Discard pile (0 cards): empty
+Exhausted: Scout
+
+>>> play Jab
+
+You played Jab. The enemy lost 6 HP.
+
+TURN 4
+You: HP 49/50, Shield 0, Energy 2, Might 0, Charge 0, Burn 0, Cracked 2
+Enemy (Iron Warden): HP 78/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Gain 15 Shield, then Attack 6 (9 damage to you before Shield)
+Hand: Bulwark, Crack, Finisher, Guard
+Draw pile (4 cards, order hidden): Guard x2, Jab x2
+Discard pile (1 card): Jab
+Exhausted: Scout
+
+>>> play Crack
+
+You played Crack. The enemy lost 7 HP.
+
+TURN 4
+You: HP 49/50, Shield 0, Energy 0, Might 0, Charge 0, Burn 0, Cracked 2
+Enemy (Iron Warden): HP 71/90, Shield 0, Might 0, Burn 0, Cracked 2
+Enemy intent: Gain 15 Shield, then Attack 6 (9 damage to you before Shield)
+Hand: Bulwark, Finisher, Guard
+Draw pile (4 cards, order hidden): Guard x2, Jab x2
+Discard pile (2 cards): Crack, Jab
+Exhausted: Scout
+
+>>> end turn
+
+The enemy did: Gain 15 Shield, then Attack 6. You lost 9 HP.
+
+TURN 5
+You: HP 40/50, Shield 0, Energy 3, Might 0, Charge 0, Burn 0, Cracked 1
+Enemy (Iron Warden): HP 71/90, Shield 15, Might 0, Burn 0, Cracked 1
+Enemy intent: Attack 14 (21 damage to you before Shield)
+Hand: Guard x2, Jab x3
+Draw pile (4 cards, order hidden): Bulwark, Crack, Finisher, Guard
+Discard pile (0 cards): empty
+Exhausted: Scout
+
+>>> play Guard
+
+You played Guard.
+
+TURN 5
+You: HP 40/50, Shield 5, Energy 2, Might 0, Charge 0, Burn 0, Cracked 1
+Enemy (Iron Warden): HP 71/90, Shield 15, Might 0, Burn 0, Cracked 1
+Enemy intent: Attack 14 (21 damage to you before Shield)
+Hand: Guard, Jab x3
+Draw pile (4 cards, order hidden): Bulwark, Crack, Finisher, Guard
+Discard pile (1 card): Guard
+Exhausted: Scout
+
+>>> play Guard
+
+You played Guard.
+
+TURN 5
+You: HP 40/50, Shield 10, Energy 1, Might 0, Charge 0, Burn 0, Cracked 1
+Enemy (Iron Warden): HP 71/90, Shield 15, Might 0, Burn 0, Cracked 1
+Enemy intent: Attack 14 (21 damage to you before Shield)
+Hand: Jab x3
+Draw pile (4 cards, order hidden): Bulwark, Crack, Finisher, Guard
+Discard pile (2 cards): Guard x2
+Exhausted: Scout
+
+>>> end turn
+
+The enemy did: Attack 14. You lost 4 HP (you had 10 Shield).
+
+TURN 6
+You: HP 36/50, Shield 0, Energy 3, Might 0, Charge 0, Burn 0, Cracked 0
+Enemy (Iron Warden): HP 71/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Apply 2 Cracked to you, then Attack 9 (13 damage to you before Shield)
+Hand: Bulwark, Crack, Finisher, Guard, Jab
+Draw pile (4 cards, order hidden): Guard x2, Jab x2
+Discard pile (0 cards): empty
+Exhausted: Scout
+
+>>> play Bulwark
+
+You played Bulwark.
+
+TURN 6
+You: HP 36/50, Shield 12, Energy 1, Might 0, Charge 0, Burn 0, Cracked 0
+Enemy (Iron Warden): HP 71/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Apply 2 Cracked to you, then Attack 9 (13 damage to you before Shield)
+Hand: Crack, Finisher, Guard, Jab
+Draw pile (4 cards, order hidden): Guard x2, Jab x2
+Discard pile (1 card): Bulwark
+Exhausted: Scout
+
+>>> play Jab
+
+You played Jab. The enemy lost 6 HP.
+
+TURN 6
+You: HP 36/50, Shield 12, Energy 0, Might 0, Charge 0, Burn 0, Cracked 0
+Enemy (Iron Warden): HP 65/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Apply 2 Cracked to you, then Attack 9 (13 damage to you before Shield)
+Hand: Crack, Finisher, Guard
+Draw pile (4 cards, order hidden): Guard x2, Jab x2
+Discard pile (2 cards): Bulwark, Jab
+Exhausted: Scout
+
+>>> end turn
+
+The enemy did: Apply 2 Cracked to you, then Attack 9. You lost 1 HP (you had 12 Shield).
+
+TURN 7
+You: HP 35/50, Shield 0, Energy 3, Might 0, Charge 0, Burn 0, Cracked 2
+Enemy (Iron Warden): HP 65/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Gain 15 Shield, then Attack 6 (9 damage to you before Shield)
+Hand: Guard x2, Jab x3
+Draw pile (4 cards, order hidden): Bulwark, Crack, Finisher, Guard
+Discard pile (0 cards): empty
+Exhausted: Scout
+
+>>> play Jab
+
+You played Jab. The enemy lost 6 HP.
+
+TURN 7
+You: HP 35/50, Shield 0, Energy 2, Might 0, Charge 0, Burn 0, Cracked 2
+Enemy (Iron Warden): HP 59/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Gain 15 Shield, then Attack 6 (9 damage to you before Shield)
+Hand: Guard x2, Jab x2
+Draw pile (4 cards, order hidden): Bulwark, Crack, Finisher, Guard
+Discard pile (1 card): Jab
+Exhausted: Scout
+
+>>> play Jab
+
+You played Jab. The enemy lost 6 HP.
+
+TURN 7
+You: HP 35/50, Shield 0, Energy 1, Might 0, Charge 0, Burn 0, Cracked 2
+Enemy (Iron Warden): HP 53/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Gain 15 Shield, then Attack 6 (9 damage to you before Shield)
+Hand: Guard x2, Jab
+Draw pile (4 cards, order hidden): Bulwark, Crack, Finisher, Guard
+Discard pile (2 cards): Jab x2
+Exhausted: Scout
+
+>>> play Jab
+
+You played Jab. The enemy lost 6 HP.
+
+TURN 7
+You: HP 35/50, Shield 0, Energy 0, Might 0, Charge 0, Burn 0, Cracked 2
+Enemy (Iron Warden): HP 47/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Gain 15 Shield, then Attack 6 (9 damage to you before Shield)
+Hand: Guard x2
+Draw pile (4 cards, order hidden): Bulwark, Crack, Finisher, Guard
+Discard pile (3 cards): Jab x3
+Exhausted: Scout
+
+>>> end turn
+
+The enemy did: Gain 15 Shield, then Attack 6. You lost 9 HP.
+
+TURN 8
+You: HP 26/50, Shield 0, Energy 3, Might 0, Charge 0, Burn 0, Cracked 1
+Enemy (Iron Warden): HP 47/90, Shield 15, Might 0, Burn 0, Cracked 0
+Enemy intent: Attack 14 (21 damage to you before Shield)
+Hand: Bulwark, Crack, Finisher, Guard, Jab
+Draw pile (4 cards, order hidden): Guard x2, Jab x2
+Discard pile (0 cards): empty
+Exhausted: Scout
+
+>>> play Bulwark
+
+You played Bulwark.
+
+TURN 8
+You: HP 26/50, Shield 12, Energy 1, Might 0, Charge 0, Burn 0, Cracked 1
+Enemy (Iron Warden): HP 47/90, Shield 15, Might 0, Burn 0, Cracked 0
+Enemy intent: Attack 14 (21 damage to you before Shield)
+Hand: Crack, Finisher, Guard, Jab
+Draw pile (4 cards, order hidden): Guard x2, Jab x2
+Discard pile (1 card): Bulwark
+Exhausted: Scout
+
+>>> play Guard
+
+You played Guard.
+
+TURN 8
+You: HP 26/50, Shield 17, Energy 0, Might 0, Charge 0, Burn 0, Cracked 1
+Enemy (Iron Warden): HP 47/90, Shield 15, Might 0, Burn 0, Cracked 0
+Enemy intent: Attack 14 (21 damage to you before Shield)
+Hand: Crack, Finisher, Jab
+Draw pile (4 cards, order hidden): Guard x2, Jab x2
+Discard pile (2 cards): Bulwark, Guard
+Exhausted: Scout
+
+>>> end turn
+
+The enemy did: Attack 14. You lost 0 HP (you had 17 Shield).
+
+TURN 9
+You: HP 26/50, Shield 0, Energy 3, Might 0, Charge 0, Burn 0, Cracked 0
+Enemy (Iron Warden): HP 47/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Apply 2 Cracked to you, then Attack 9 (13 damage to you before Shield)
+Hand: Finisher, Guard x2, Jab x2
+Draw pile (4 cards, order hidden): Bulwark, Crack, Guard, Jab
+Discard pile (0 cards): empty
+Exhausted: Scout
+
+>>> play Jab
+
+You played Jab. The enemy lost 6 HP.
+
+TURN 9
+You: HP 26/50, Shield 0, Energy 2, Might 0, Charge 0, Burn 0, Cracked 0
+Enemy (Iron Warden): HP 41/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Apply 2 Cracked to you, then Attack 9 (13 damage to you before Shield)
+Hand: Finisher, Guard x2, Jab
+Draw pile (4 cards, order hidden): Bulwark, Crack, Guard, Jab
+Discard pile (1 card): Jab
+Exhausted: Scout
+
+>>> play Jab
+
+You played Jab. The enemy lost 6 HP.
+
+TURN 9
+You: HP 26/50, Shield 0, Energy 1, Might 0, Charge 0, Burn 0, Cracked 0
+Enemy (Iron Warden): HP 35/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Apply 2 Cracked to you, then Attack 9 (13 damage to you before Shield)
+Hand: Finisher, Guard x2
+Draw pile (4 cards, order hidden): Bulwark, Crack, Guard, Jab
+Discard pile (2 cards): Jab x2
+Exhausted: Scout
+
+>>> play Guard
+
+You played Guard.
+
+TURN 9
+You: HP 26/50, Shield 5, Energy 0, Might 0, Charge 0, Burn 0, Cracked 0
+Enemy (Iron Warden): HP 35/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Apply 2 Cracked to you, then Attack 9 (13 damage to you before Shield)
+Hand: Finisher, Guard
+Draw pile (4 cards, order hidden): Bulwark, Crack, Guard, Jab
+Discard pile (3 cards): Guard, Jab x2
+Exhausted: Scout
+
+>>> end turn
+
+The enemy did: Apply 2 Cracked to you, then Attack 9. You lost 8 HP (you had 5 Shield).
+
+TURN 10
+You: HP 18/50, Shield 0, Energy 3, Might 0, Charge 0, Burn 0, Cracked 2
+Enemy (Iron Warden): HP 35/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Gain 15 Shield, then Attack 6 (9 damage to you before Shield)
+Hand: Bulwark, Crack, Guard x2, Jab
+Draw pile (4 cards, order hidden): Finisher, Guard, Jab x2
+Discard pile (0 cards): empty
+Exhausted: Scout
+
+>>> play Jab
+
+You played Jab. The enemy lost 6 HP.
+
+TURN 10
+You: HP 18/50, Shield 0, Energy 2, Might 0, Charge 0, Burn 0, Cracked 2
+Enemy (Iron Warden): HP 29/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Gain 15 Shield, then Attack 6 (9 damage to you before Shield)
+Hand: Bulwark, Crack, Guard x2
+Draw pile (4 cards, order hidden): Finisher, Guard, Jab x2
+Discard pile (1 card): Jab
+Exhausted: Scout
+
+>>> play Crack
+
+You played Crack. The enemy lost 7 HP.
+
+TURN 10
+You: HP 18/50, Shield 0, Energy 0, Might 0, Charge 0, Burn 0, Cracked 2
+Enemy (Iron Warden): HP 22/90, Shield 0, Might 0, Burn 0, Cracked 2
+Enemy intent: Gain 15 Shield, then Attack 6 (9 damage to you before Shield)
+Hand: Bulwark, Guard x2
+Draw pile (4 cards, order hidden): Finisher, Guard, Jab x2
+Discard pile (2 cards): Crack, Jab
+Exhausted: Scout
+
+>>> end turn
+
+The enemy did: Gain 15 Shield, then Attack 6. You lost 9 HP.
+
+TURN 11
+You: HP 9/50, Shield 0, Energy 3, Might 0, Charge 0, Burn 0, Cracked 1
+Enemy (Iron Warden): HP 22/90, Shield 15, Might 0, Burn 0, Cracked 1
+Enemy intent: Attack 14 (21 damage to you before Shield)
+Hand: Finisher, Guard x2, Jab x2
+Draw pile (4 cards, order hidden): Bulwark, Crack, Guard, Jab
+Discard pile (0 cards): empty
+Exhausted: Scout
+
+>>> play Guard
+
+You played Guard.
+
+TURN 11
+You: HP 9/50, Shield 5, Energy 2, Might 0, Charge 0, Burn 0, Cracked 1
+Enemy (Iron Warden): HP 22/90, Shield 15, Might 0, Burn 0, Cracked 1
+Enemy intent: Attack 14 (21 damage to you before Shield)
+Hand: Finisher, Guard, Jab x2
+Draw pile (4 cards, order hidden): Bulwark, Crack, Guard, Jab
+Discard pile (1 card): Guard
+Exhausted: Scout
+
+>>> play Guard
+
+You played Guard.
+
+TURN 11
+You: HP 9/50, Shield 10, Energy 1, Might 0, Charge 0, Burn 0, Cracked 1
+Enemy (Iron Warden): HP 22/90, Shield 15, Might 0, Burn 0, Cracked 1
+Enemy intent: Attack 14 (21 damage to you before Shield)
+Hand: Finisher, Jab x2
+Draw pile (4 cards, order hidden): Bulwark, Crack, Guard, Jab
+Discard pile (2 cards): Guard x2
+Exhausted: Scout
+
+>>> end turn
+
+The enemy did: Attack 14. You lost 4 HP (you had 10 Shield).
+
+TURN 12
+You: HP 5/50, Shield 0, Energy 3, Might 0, Charge 0, Burn 0, Cracked 0
+Enemy (Iron Warden): HP 22/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Apply 2 Cracked to you, then Attack 9 (13 damage to you before Shield)
+Hand: Bulwark, Crack, Finisher, Guard, Jab
+Draw pile (4 cards, order hidden): Guard x2, Jab x2
+Discard pile (0 cards): empty
+Exhausted: Scout
+
+>>> play Bulwark
+
+You played Bulwark.
+
+TURN 12
+You: HP 5/50, Shield 12, Energy 1, Might 0, Charge 0, Burn 0, Cracked 0
+Enemy (Iron Warden): HP 22/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Apply 2 Cracked to you, then Attack 9 (13 damage to you before Shield)
+Hand: Crack, Finisher, Guard, Jab
+Draw pile (4 cards, order hidden): Guard x2, Jab x2
+Discard pile (1 card): Bulwark
+Exhausted: Scout
+
+>>> play Jab
+
+You played Jab. The enemy lost 6 HP.
+
+TURN 12
+You: HP 5/50, Shield 12, Energy 0, Might 0, Charge 0, Burn 0, Cracked 0
+Enemy (Iron Warden): HP 16/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Apply 2 Cracked to you, then Attack 9 (13 damage to you before Shield)
+Hand: Crack, Finisher, Guard
+Draw pile (4 cards, order hidden): Guard x2, Jab x2
+Discard pile (2 cards): Bulwark, Jab
+Exhausted: Scout
+
+>>> end turn
+
+The enemy did: Apply 2 Cracked to you, then Attack 9. You lost 1 HP (you had 12 Shield).
+
+TURN 13
+You: HP 4/50, Shield 0, Energy 3, Might 0, Charge 0, Burn 0, Cracked 2
+Enemy (Iron Warden): HP 16/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Gain 15 Shield, then Attack 6 (9 damage to you before Shield)
+Hand: Crack, Guard x2, Jab x2
+Draw pile (4 cards, order hidden): Bulwark, Finisher, Guard, Jab
+Discard pile (0 cards): empty
+Exhausted: Scout
+
+>>> play Jab
+
+You played Jab. The enemy lost 6 HP.
+
+TURN 13
+You: HP 4/50, Shield 0, Energy 2, Might 0, Charge 0, Burn 0, Cracked 2
+Enemy (Iron Warden): HP 10/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Gain 15 Shield, then Attack 6 (9 damage to you before Shield)
+Hand: Crack, Guard x2, Jab
+Draw pile (4 cards, order hidden): Bulwark, Finisher, Guard, Jab
+Discard pile (1 card): Jab
+Exhausted: Scout
+
+>>> play Jab
+
+You played Jab. The enemy lost 6 HP.
+
+TURN 13
+You: HP 4/50, Shield 0, Energy 1, Might 0, Charge 0, Burn 0, Cracked 2
+Enemy (Iron Warden): HP 4/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Gain 15 Shield, then Attack 6 (9 damage to you before Shield)
+Hand: Crack, Guard x2
+Draw pile (4 cards, order hidden): Bulwark, Finisher, Guard, Jab
+Discard pile (2 cards): Jab x2
+Exhausted: Scout
+
+>>> play Guard
+
+You played Guard.
+
+TURN 13
+You: HP 4/50, Shield 5, Energy 0, Might 0, Charge 0, Burn 0, Cracked 2
+Enemy (Iron Warden): HP 4/90, Shield 0, Might 0, Burn 0, Cracked 0
+Enemy intent: Gain 15 Shield, then Attack 6 (9 damage to you before Shield)
+Hand: Crack, Guard
+Draw pile (4 cards, order hidden): Bulwark, Finisher, Guard, Jab
+Discard pile (3 cards): Guard, Jab x2
+Exhausted: Scout
+
+>>> end turn
+
+The enemy did: Gain 15 Shield, then Attack 6. You lost 4 HP (you had 5 Shield).
+
+YOU LOST on turn 13. The enemy had 4 HP left. Score: 0.382
