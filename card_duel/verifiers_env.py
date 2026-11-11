@@ -1,4 +1,4 @@
-"""Adapter for the `verifiers` library (Prime Intellect's Environments Hub).
+"""Legacy (verifiers v0) adapter. For verifiers v1 use the packages in environments/.
 
     pip install "card-duel[verifiers]"
     import card_duel

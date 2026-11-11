@@ -1,0 +1,18 @@
+[project]
+name = "card-duel-puzzles"
+version = "0.1.0"
+description = "Card Duel 'win this turn' puzzles with exact, solver-checked rewards."
+requires-python = ">=3.11"
+dependencies = ["verifiers", "card-duel"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["card_duel_puzzles"]
+
+# Local development uses the core package from this repository. Before pushing to
+# the Hub, point card-duel at a published release or a git URL instead.
+[tool.uv.sources]
+card-duel = { path = "../..", editable = true }

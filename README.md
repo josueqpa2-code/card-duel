@@ -47,7 +47,7 @@ python -m card_duel solve 12             # its answer, and how rare winning line
 python -m card_duel check 12 "Wind Up, Jab"
 python -m card_duel fight 3              # play a fight yourself
 python -m card_duel benchmark 300 200
-python -m unittest discover -s tests -t .
+python -m unittest discover -s tests -t .   # 59 tests
 ```
 
 ```python
@@ -92,21 +92,41 @@ the seed.
 
 ## Use with verifiers / Prime Intellect Environments Hub
 
+**verifiers v1 (current).** `environments/` holds two Hub packages, each built in the same shape
+as an example in the verifiers repository:
+
+| Package | Exports | Shape | Modelled on |
+|---|---|---|---|
+| `environments/card_duel_puzzles` | `CardDuelPuzzleTaskset` | single turn; `@vf.reward` reads `trace.last_reply` | the `gsm8k` example |
+| `environments/card_duel_fights` | `CardDuelFightTaskset`, `CardDuelFightEnv` | multi-turn; the game engine plays the user | the `textarena` (Wordle) taskset |
+
 ```bash
-pip install "card-duel[verifiers]"
+uv pip install -e environments/card_duel_puzzles
+uv run vf-validate card-duel-puzzles -n 1
+uv run vf-run card-duel-puzzles -n 5 -r 1
 ```
 
+- **Config:** `split` (train/test) and `num_tasks` for both packages. The puzzles package also
+  takes `difficulty` and `partial_credit`.
+- **Before pushing to the Hub:** each `pyproject.toml` points `card-duel` at this repository
+  through `[tool.uv.sources]`. Change that to a published release or a git URL first.
+
+**verifiers v0 (legacy).** The Hub now lists v0 environments as Legacy.
+
 ```python
-import card_duel
+import card_duel   # pip install "card-duel[verifiers]"
 env = card_duel.load_environment(task="puzzle", num_train=2000, num_eval=200, difficulty=None)
 env = card_duel.load_environment(task="fight", num_train=2000, num_eval=200, max_turns=150)
 ```
 
-- **Status: not yet run against a real verifiers install.** The adapter in
-  `card_duel/verifiers_env.py` was written for verifiers 0.1.x. Its reward functions and the
-  multi-turn loop are tested with stand-in modules (`tests/test_verifiers_adapter.py`).
-- **Saving results works.** Rollout state holds only plain JSON: the fight is rebuilt from its
-  seed and the actions taken so far.
+**Status: neither adapter has been run against a real verifiers install yet.**
+
+- **What the tests cover:** both are tested against stand-in modules
+  (`tests/test_hub_v1.py`, `tests/test_verifiers_adapter.py`). Those tests check loading,
+  scoring, and that every observation the multi-turn loop sends matches the engine.
+- **What they don't cover:** compatibility with a real verifiers release.
+- **Saving results:** the v0 adapter keeps only plain JSON in rollout state. It rebuilds the
+  fight from its seed and the actions taken so far.
 
 ## Why agents find it hard
 
