@@ -117,6 +117,33 @@ def eval_puzzles(client: ChatClient, puzzles: list[Puzzle], workers: int = 4,
         return list(pool.map(one, puzzles))
 
 
+def eval_plans(client: ChatClient, puzzles: list, workers: int = 4,
+               out: str | Path | None = None, partial_credit: bool = False) -> list[dict]:
+    """Two-turn puzzles (card_duel.plan_puzzles)."""
+    from .plan_puzzles import score_plan_answer
+    from .verifiers_env import PLAN_SYSTEM
+    log = _Log(out)
+
+    def one(p) -> dict:
+        messages = [{"role": "system", "content": PLAN_SYSTEM}, {"role": "user", "content": p.prompt()}]
+        base = {"task": "plan", "id": p.id, "difficulty": p.difficulty}
+        try:
+            reply = client.complete(messages)
+        except RuntimeError as err:
+            record = {**base, "reward": 0.0, "solved": False, "legal": False, "error": f"api: {err}", "reply": None}
+            log.write(record)
+            return record
+        r = score_plan_answer(p, reply, partial_credit)
+        record = {**base, "reward": r.reward, "solved": r.solved, "legal": r.legal, "damage": r.damage,
+                  "enemy_hp": p.enemy_hp, "played": [list(t) for t in r.played],
+                  "solution": [list(t) for t in p.solution], "error": r.error, "reply": reply}
+        log.write(record)
+        return record
+
+    with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
+        return list(pool.map(one, puzzles))
+
+
 def eval_fights(client: ChatClient, specs: list[FightSpec], workers: int = 2,
                 out: str | Path | None = None, window: int = 16) -> list[dict]:
     """Play each fight to the end. The model sees the system prompt, the opening
@@ -155,16 +182,18 @@ def summarize(records: list[dict]) -> str:
     if not records:
         return "no results"
     lines = []
-    puzzles = [r for r in records if r["task"] == "puzzle"]
     fights = [r for r in records if r["task"] == "fight"]
-    if puzzles:
+    for task, label in (("puzzle", "Puzzles"), ("plan", "Two-turn puzzles")):
+        puzzles = [r for r in records if r["task"] == task]
+        if not puzzles:
+            continue
         groups = defaultdict(list)
         for r in puzzles:
             groups[r["difficulty"]].append(r)
         parts = [f"{d} {sum(r['solved'] for r in g)}/{len(g)}" for d, g in sorted(groups.items())]
         legal = sum(r["legal"] for r in puzzles) / len(puzzles)
         api = sum(1 for r in puzzles if (r.get("error") or "").startswith("api:"))
-        lines.append(f"Puzzles solved: {sum(r['solved'] for r in puzzles)}/{len(puzzles)} "
+        lines.append(f"{label} solved: {sum(r['solved'] for r in puzzles)}/{len(puzzles)} "
                      f"({', '.join(parts)}); legal answers {legal:.0%}; API errors {api}")
     if fights:
         wins = sum(r["won"] for r in fights)

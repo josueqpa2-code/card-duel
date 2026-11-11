@@ -3,10 +3,12 @@
   puzzle SEED              print the prompt for a puzzle
   solve SEED               print the puzzle's answer and how rare winning lines are
   check SEED "A, B, C"     score a play order for a puzzle
+  plan SEED                print a two-turn planning puzzle
+  solve-plan SEED          print its answer
   fight SEED [LEVEL]       play a fight yourself in the terminal (level 0-3)
   benchmark [P] [F]        baseline scores on P test puzzles and F test fights
   examples DIR             write sample tasks and a full fight transcript
-  export DIR [TRAIN] [TEST]  write the puzzle and fight datasets as JSONL
+  export DIR [TRAIN] [TEST]  write the puzzle, two-turn puzzle and fight datasets as JSONL
   export-sft DIR [P] [F]   write fine-tuning chats: worked puzzle solutions, winning fights
   eval-model MODEL [...]   score an OpenAI-compatible chat model (--help for options)
   rules [FILE]             print or write the rules, cards and enemies as Markdown
@@ -35,6 +37,18 @@ def _solve(args):
     print(f"{p.id} ({p.split}, {p.difficulty}): {', '.join(p.solution)}")
     print(f"{p.winning_lines} of {p.total_lines} possible lines win "
           f"({100 * p.winning_lines / p.total_lines:.1f}%).")
+
+
+def _plan(args):
+    from .plan_puzzles import generate as generate_plan
+    print(generate_plan(int(args[0])).prompt())
+
+
+def _solve_plan(args):
+    from .plan_puzzles import generate as generate_plan
+    p = generate_plan(int(args[0]))
+    print(f"{p.id} ({p.split}, {p.difficulty}): turn 1: {', '.join(p.solution[0]) or '(nothing)'} "
+          f"| turn 2: {', '.join(p.solution[1])}")
 
 
 def _check(args):
@@ -78,6 +92,21 @@ def benchmark(n_puzzles: int = 300, n_fights: int = 200) -> str:
             group = by_diff[d]
             cells.append(f"{sum(score_line(p, fn(p)).solved for p in group) / len(group):.0%}")
         total = sum(score_line(p, fn(p)).solved for p in puzzles) / len(puzzles)
+        lines.append(f"| {name} | " + " | ".join(cells) + f" | {total:.0%} |")
+    from .plan_puzzles import greedy_plan, myopic_plan, plan_dataset, score_plan
+    plans = plan_dataset("test", max(1, n_puzzles * 2 // 3))
+    plan_groups = defaultdict(list)
+    for p in plans:
+        plan_groups[p.difficulty].append(p)
+    plan_order = [d for d in ("medium", "hard") if d in plan_groups]
+    lines += ["", f"Two-turn puzzles: {len(plans)} from the test split "
+                  f"({', '.join(f'{len(plan_groups[d])} {d}' for d in plan_order)}). Share solved:", "",
+              "| Player | " + " | ".join(plan_order) + " | all |", "|---" * (len(plan_order) + 2) + "|"]
+    for name, fn in (("greedy each turn", greedy_plan), ("most damage now, then best", myopic_plan),
+                     ("exact solver", lambda p: p.solution)):
+        cells = [f"{sum(score_plan(p, *fn(p)).solved for p in plan_groups[d]) / len(plan_groups[d]):.0%}"
+                 for d in plan_order]
+        total = sum(score_plan(p, *fn(p)).solved for p in plans) / len(plans)
         lines.append(f"| {name} | " + " | ".join(cells) + f" | {total:.0%} |")
     specs = fight_dataset("test", n_fights)
     lines += ["", f"Fights: {len(specs)} from the test split.", "",
@@ -145,6 +174,12 @@ def _export(args):
             for p in dataset(split, n):
                 f.write(json.dumps({"id": p.id, "difficulty": p.difficulty, "prompt": p.prompt(),
                                     "answer": ", ".join(p.solution), "puzzle": p.to_dict()}) + "\n")
+        from .plan_puzzles import plan_dataset
+        with open(out / f"plans_{split}.jsonl", "w", encoding="utf-8") as f:
+            for p in plan_dataset(split, n):
+                f.write(json.dumps({"id": p.id, "difficulty": p.difficulty, "prompt": p.prompt(),
+                                    "answer": " | ".join(", ".join(t) for t in p.solution),
+                                    "puzzle": p.to_dict()}) + "\n")
         with open(out / f"fights_{split}.jsonl", "w", encoding="utf-8") as f:
             for spec in fight_dataset(split, n):
                 f.write(json.dumps({"id": spec.id, "seed": spec.seed, "enemy": spec.enemy,
@@ -222,13 +257,14 @@ def _export_sft(args):
 def _eval_model(args):
     import argparse
 
-    from .llm_eval import ChatClient, eval_fights, eval_puzzles, summarize
+    from .llm_eval import ChatClient, eval_fights, eval_plans, eval_puzzles, summarize
+    from .plan_puzzles import plan_dataset
 
     ap = argparse.ArgumentParser(prog="python -m card_duel eval-model",
                                  description="Score an OpenAI-compatible chat model. Reads OPENAI_API_KEY "
                                              "and OPENAI_BASE_URL from the environment.")
     ap.add_argument("model")
-    ap.add_argument("--task", choices=["puzzle", "fight"], default="puzzle")
+    ap.add_argument("--task", choices=["puzzle", "plan", "fight"], default="puzzle")
     ap.add_argument("--n", type=int, default=50, help="number of tasks (default 50)")
     ap.add_argument("--split", choices=["train", "test"], default="test")
     ap.add_argument("--difficulty", choices=["easy", "medium", "hard"])
@@ -248,6 +284,10 @@ def _eval_model(args):
     client = ChatClient(a.model, base_url=a.base_url, temperature=a.temperature, max_tokens=a.max_tokens)
     if a.task == "puzzle":
         records = eval_puzzles(client, dataset(a.split, a.n, a.difficulty), a.workers, out)
+    elif a.task == "plan":
+        if a.difficulty == "easy":
+            ap.error("two-turn puzzles have only medium and hard difficulty")
+        records = eval_plans(client, plan_dataset(a.split, a.n, a.difficulty), a.workers, out)
     else:
         records = eval_fights(client, fight_dataset(a.split, a.n, level=a.level), a.workers, out, a.window)
     print(summarize(records))
@@ -255,6 +295,7 @@ def _eval_model(args):
 
 
 COMMANDS = {"puzzle": _puzzle, "solve": _solve, "check": _check, "fight": _fight,
+            "plan": _plan, "solve-plan": _solve_plan,
             "benchmark": _benchmark, "examples": _examples, "export": _export,
             "export-sft": _export_sft, "eval-model": _eval_model, "rules": _rules}
 

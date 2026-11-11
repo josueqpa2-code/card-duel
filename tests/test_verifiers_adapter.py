@@ -64,6 +64,17 @@ class AdapterTest(unittest.TestCase):
             self.assertEqual(legal(completion=bad, info=row["info"]), 0.0)
             self.assertEqual(reward(completion=f"<answer>{row['answer']}</answer>", info=row["info"]), 1.0)
 
+    def test_plan_rewards(self):
+        import card_duel
+        env = card_duel.load_environment(task="plan", num_train=2, num_eval=1)
+        reward, solved, legal = env.kw["rubric"].funcs
+        for row in env.kw["dataset"].rows:
+            json.dumps(row)
+            good = [{"role": "assistant", "content": f"<answer>{row['answer']}</answer>"}]
+            self.assertEqual(reward(completion=good, info=row["info"]), 1.0)
+            bad = [{"role": "assistant", "content": "<answer>Jab | Jab | Jab</answer>"}]
+            self.assertEqual(legal(completion=bad, info=row["info"]), 0.0)
+
     def test_fight_rollout_matches_direct_play(self):
         import card_duel
         env = card_duel.load_environment(task="fight", num_train=2, num_eval=1)

@@ -4,11 +4,15 @@ An original turn-based card game built as a training and evaluation environment 
 Every reward comes from the game engine itself, so it can be checked exactly, and every task
 is fully determined by a seed. It is pure Python with no dependencies.
 
-It has two task types:
+It has three task types:
 
 - **Puzzles.** Single-turn "win this turn" problems. An exhaustive solver sets the enemy's HP to
   exactly the most damage any line of play can deal, so a solution always exists and only the
   best play wins. The reward is checked exactly.
+- **Two-turn puzzles.** "Win within two turns", with the draw order and the enemy's one action
+  in between both shown. A nested exact search sets the enemy's HP, so every puzzle needs a
+  second turn and only the best plan wins. Hard ones require giving up damage in turn 1 to
+  survive the enemy's action or set up a bigger turn 2.
 - **Fights.** Full multi-turn battles against an enemy whose moves follow a fixed, visible cycle.
   The agent plays one card per message, and the score is whether it won plus how much HP it kept.
 
@@ -25,6 +29,17 @@ Puzzles: 300 from the test split (91 easy, 145 medium, 64 hard). Share solved:
 | lookahead (2 cards) | 89% | 68% | 42% | 69% |
 | lookahead (3 cards) | 99% | 88% | 73% | 88% |
 | exact solver | 100% | 100% | 100% | 100% |
+
+Two-turn puzzles: 200 from the test split (127 medium, 73 hard). Share solved:
+
+| Player | medium | hard | all |
+|---|---|---|---|
+| greedy each turn | 9% | 7% | 8% |
+| most damage now, then best | 100% | 0% | 64% |
+| exact solver | 100% | 100% | 100% |
+
+"Hard" means it by definition: the best possible turn 1 followed by the best possible turn 2
+fails, so only a joint plan over both turns wins.
 
 Fights: 200 from the test split.
 
@@ -66,9 +81,10 @@ setting is called `level` in both verifiers adapters and `--level` in `eval-mode
 python -m card_duel puzzle 12            # print a puzzle prompt
 python -m card_duel solve 12             # its answer, and how rare winning lines are
 python -m card_duel check 12 "Wind Up, Jab"
+python -m card_duel plan 12              # a two-turn puzzle; solve-plan 12 for its answer
 python -m card_duel fight 3              # play a fight yourself
 python -m card_duel benchmark 300 200
-python -m unittest discover -s tests -t .   # 74 tests
+python -m unittest discover -s tests -t .   # 88 tests
 ```
 
 ```python
@@ -91,6 +107,7 @@ reads `OPENAI_API_KEY`, plus `OPENAI_BASE_URL` for other providers.
 
 ```bash
 python -m card_duel eval-model MODEL --task puzzle --n 100 --difficulty hard
+python -m card_duel eval-model MODEL --task plan --n 100
 python -m card_duel eval-model MODEL --task fight --n 20 --workers 2
 ```
 
@@ -141,6 +158,11 @@ numbering, arrows and a leading "play". If the answer has several tags, the last
   scores 0.5 × the share of the enemy's HP removed.
 - **Extra cards:** any cards listed after the winning play are ignored.
 
+**Two-turn puzzle answers.** The model writes both turns in one answer, separated by `|`, for
+example `<answer>Guard, Ignite | Wind Up, Flurry, Jab</answer>`. Scoring follows the
+one-turn puzzles: 1.0 for a win, and 0.0 for an illegal play in either turn or a loss
+(including dying to the enemy's action).
+
 **Fight actions.** Each turn the model sends `<action>play CARD</action>` or
 `<action>end turn</action>`.
 
@@ -173,7 +195,8 @@ uv run vf-run card-duel-puzzles -n 5 -r 1
 ```
 
 - **Config:** `split` (train/test) and `num_tasks` for both packages. The puzzles package also
-  takes `difficulty` and `partial_credit`.
+  takes `kind` (`one-turn` or `two-turn`), `difficulty` and `partial_credit`. The fights package
+  also takes `level`.
 - **Before pushing to the Hub:** each `pyproject.toml` points `card-duel` at this repository
   through `[tool.uv.sources]`. Change that to a published release or a git URL first.
 
@@ -182,6 +205,7 @@ uv run vf-run card-duel-puzzles -n 5 -r 1
 ```python
 import card_duel   # pip install "card-duel[verifiers]"
 env = card_duel.load_environment(task="puzzle", num_train=2000, num_eval=200, difficulty=None)
+env = card_duel.load_environment(task="plan", num_train=2000, num_eval=200)   # two-turn puzzles
 env = card_duel.load_environment(task="fight", num_train=2000, num_eval=200, max_turns=150)
 ```
 

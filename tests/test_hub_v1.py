@@ -134,6 +134,20 @@ class HubV1Test(unittest.TestCase):
             self.assertEqual(asyncio.run(task.legal(bad)), 0.0)
             self.assertEqual(asyncio.run(task.correct(empty)), 0.0)
 
+    def test_two_turn_puzzle_taskset(self):
+        from card_duel_puzzles import CardDuelPuzzleTaskset
+        from card_duel_puzzles.taskset import CardDuelPuzzleConfig
+        tasks = CardDuelPuzzleTaskset(CardDuelPuzzleConfig(split="test", num_tasks=2, kind="two-turn",
+                                                           difficulty=None, partial_credit=False)).load()
+        self.assertEqual(len(tasks), 2)
+        for task in tasks:
+            self.assertIn("WIN WITHIN TWO TURNS", task.data.prompt)
+            t1, t2 = (", ".join(t) for t in task.data.puzzle["solution"])
+            good = types.SimpleNamespace(last_reply=f"<answer>{t1} | {t2}</answer>")
+            self.assertEqual(asyncio.run(task.correct(good)), 1.0)
+            only_first = types.SimpleNamespace(last_reply=f"<answer>{t1}</answer>")
+            self.assertEqual(asyncio.run(task.correct(only_first)), 0.0)
+
     def test_fight_env_turn_loop(self):
         from card_duel_fights import CardDuelFightEnv, CardDuelFightTaskset
         from card_duel_fights.taskset import CardDuelFightConfig

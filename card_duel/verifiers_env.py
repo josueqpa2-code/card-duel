@@ -65,6 +65,40 @@ def load_puzzle_environment(num_train: int = 2000, num_eval: int = 200, difficul
                             rubric=rubric, **kwargs)
 
 
+PLAN_SYSTEM = ("Solve the two-turn Card Duel puzzle. Think it through, then give your plan as "
+               "<answer>turn 1 cards | turn 2 cards</answer>.")
+
+
+def load_plan_environment(num_train: int = 2000, num_eval: int = 200, difficulty: str | None = None,
+                          partial_credit: bool = False, **kwargs):
+    import verifiers as vf
+    from datasets import Dataset
+
+    from .plan_puzzles import PlanPuzzle, plan_dataset, score_plan_answer
+
+    def rows(split: str, n: int) -> list[dict]:
+        return [{"question": p.prompt(), "answer": " | ".join(", ".join(t) for t in p.solution),
+                 "task": "card-duel-plan", "info": {"puzzle": p.to_dict()}}
+                for p in plan_dataset(split, n, difficulty)]
+
+    def _result(completion, info):
+        return score_plan_answer(PlanPuzzle.from_dict(info["puzzle"]), _text(completion), partial_credit)
+
+    def plan_reward(completion, info, **_) -> float:
+        return _result(completion, info).reward
+
+    def solved(completion, info, **_) -> float:
+        return float(_result(completion, info).solved)
+
+    def legal(completion, info, **_) -> float:
+        return float(_result(completion, info).legal)
+
+    rubric = vf.Rubric(funcs=[plan_reward, solved, legal], weights=[1.0, 0.0, 0.0])
+    return vf.SingleTurnEnv(dataset=Dataset.from_list(rows("train", num_train)),
+                            eval_dataset=Dataset.from_list(rows("test", num_eval)),
+                            system_prompt=PLAN_SYSTEM, rubric=rubric, **kwargs)
+
+
 def _replay_with_text(state: dict) -> tuple[FightEnv, str]:
     """Rebuild the fight from its seed and the actions so far, plus the last observation."""
     info = state["info"]
@@ -118,6 +152,8 @@ def load_fight_environment(num_train: int = 2000, num_eval: int = 200, max_turns
 def load_environment(task: str = "puzzle", **kwargs):
     if task == "puzzle":
         return load_puzzle_environment(**kwargs)
+    if task == "plan":
+        return load_plan_environment(**kwargs)
     if task == "fight":
         return load_fight_environment(**kwargs)
-    raise ValueError("task must be 'puzzle' or 'fight'")
+    raise ValueError("task must be 'puzzle', 'plan' or 'fight'")

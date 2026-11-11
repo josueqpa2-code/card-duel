@@ -89,6 +89,16 @@ class LlmEvalTest(unittest.TestCase):
         self.assertNotIn("temperature", req["body"])
         self.assertIn("Puzzles solved: 4/6", summarize(records))
 
+    def test_two_turn_puzzles(self):
+        from card_duel.llm_eval import eval_plans
+        from card_duel.plan_puzzles import plan_dataset
+        plans = plan_dataset("test", 3)
+        FakeChat.answers = {p.prompt(): "<answer>" + " | ".join(", ".join(t) for t in p.solution) + "</answer>"
+                            for p in plans[:2]}
+        records = eval_plans(self.client(), plans, workers=2)
+        self.assertEqual([r["solved"] for r in records], [True, True, False])
+        self.assertIn("Two-turn puzzles solved: 2/3", summarize(records))
+
     def test_retries_after_rate_limit(self):
         p = dataset("test", 1)[0]
         FakeChat.answers = {p.prompt(): f"<answer>{', '.join(p.solution)}</answer>"}
