@@ -152,6 +152,21 @@ def _examples(args):
                 f"Only {hard.winning_lines} of {hard.total_lines} possible lines win.\n\n"
                 f"**Greedy player:** {', '.join(greedy) or '(nothing)'} -> {g.damage}/{hard.enemy_hp} "
                 f"damage, not enough.\n")
+    from .plan_puzzles import myopic_plan, plan_dataset, score_plan
+    plan = plan_dataset("train", 1, "hard")[0]
+    m1, m2 = myopic_plan(plan)
+    m = score_plan(plan, m1, m2)
+    with open(out / "plan_walkthrough.md", "w", encoding="utf-8") as f:
+        f.write(f"# A hard two-turn puzzle ({plan.id})\n\n```\n{plan.prompt()}\n```\n\n"
+                f"**Exact plan:** turn 1: {', '.join(plan.solution[0]) or '(nothing)'} | "
+                f"turn 2: {', '.join(plan.solution[1])}\n\n"
+                f"**Most damage now, then the best turn 2:** turn 1: {', '.join(m1) or '(nothing)'} | "
+                f"turn 2: {', '.join(m2) or '(nothing)'} -> "
+                + (f"{m.error}." if m.error else f"{m.damage}/{plan.enemy_hp} damage, not enough.") + "\n")
+    with open(out / "plans_sample.jsonl", "w", encoding="utf-8") as f:
+        for difficulty in ("medium", "hard"):
+            for p in plan_dataset("train", 3, difficulty):
+                f.write(json.dumps({**p.to_dict(), "prompt": p.prompt()}) + "\n")
     # A fight the planner wins and the greedy player loses shows what the task rewards.
     spec = next(s for s in fight_dataset("train", 100)
                 if run_fight(s, PlannerPlayer()).won and not run_fight(s, GreedyPlayer()).won)

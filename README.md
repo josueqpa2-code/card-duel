@@ -236,8 +236,11 @@ The rules are short, but small details decide the puzzles. Each of these is cove
 - **Decoy cards** such as Guard and Bulwark, and rounding down on every Cracked hit, punish
   answers that are only roughly right.
 
-`examples/` has sample puzzles at each difficulty, a walkthrough of a hard puzzle that the greedy
-player fails, and full fight transcripts from the planner and greedy players. Regenerate them
+`examples/` has:
+
+- sample puzzles at each difficulty, and a walkthrough of a hard puzzle the greedy player fails;
+- sample two-turn puzzles, and a walkthrough of one where the most damage now loses;
+- full fight transcripts from the planner and greedy players. Regenerate them
 with `python -m card_duel examples examples`.
 
 ## Design notes
