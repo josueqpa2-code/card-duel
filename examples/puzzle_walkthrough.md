@@ -26,7 +26,7 @@ Choose which cards to play this turn, and in what order, so the enemy is defeate
 
 STATE
 You: HP 9/40, Energy 4, Might 0, Charge 0
-Enemy (Ash Wisp): HP 30/64, Shield 4, Burn 0, Cracked 0
+Enemy (Hollow Duelist): HP 30/66, Shield 4, Burn 0, Cracked 0
 Hand: Finisher x2, Flurry, Jab, Scout, Spark, Stoke
 Draw pile, top card first: Ignite, Spark, Overclock
 Discard pile: empty

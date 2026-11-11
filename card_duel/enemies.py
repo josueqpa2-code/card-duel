@@ -45,6 +45,16 @@ ENEMIES: dict[str, EnemyKind] = {
             (("crack", 1), ("attack", 11, 1)),
             (("might", 3), ("shield", 6)),
         )),
+        EnemyKind("Ember Hound", 68, 0, (
+            (("attack", 4, 4),),
+            (("burn", 4), ("shield", 8)),
+            (("attack", 7, 2),),
+        )),
+        EnemyKind("Stone Sentinel", 84, 14, (
+            (("shield", 14),),
+            (("shield", 8), ("attack", 7, 1)),
+            (("attack", 21, 1),),
+        )),
     ]
 }
 ENEMY_NAMES: tuple[str, ...] = tuple(ENEMIES)
