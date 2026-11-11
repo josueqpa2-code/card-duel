@@ -47,7 +47,7 @@ python -m card_duel solve 12             # its answer, and how rare winning line
 python -m card_duel check 12 "Wind Up, Jab"
 python -m card_duel fight 3              # play a fight yourself
 python -m card_duel benchmark 300 200
-python -m unittest discover -s tests -t .   # 59 tests
+python -m unittest discover -s tests -t .   # 63 tests
 ```
 
 ```python
@@ -61,6 +61,32 @@ result.reward, result.solved, result.legal, result.error
 env = FightEnv(seed=7)
 obs = env.intro()
 obs, reward, done, info = env.step("<action>play Jab</action>")
+```
+
+## Score a model
+
+`eval-model` works with any OpenAI-compatible chat API, using only the standard library. It
+reads `OPENAI_API_KEY`, plus `OPENAI_BASE_URL` for other providers.
+
+```bash
+python -m card_duel eval-model MODEL --task puzzle --n 100 --difficulty hard
+python -m card_duel eval-model MODEL --task fight --n 20 --workers 2
+```
+
+- **Output:** a summary is printed (solved by difficulty, legal-answer rate, or fight win
+  rate and mean reward). Every task is appended to `outputs/<model>-<task>-<split>.jsonl`
+  with the model's replies.
+- **Fights:** the model sees the opening message plus the last 16 messages (`--window`).
+  Each observation repeats the full state.
+- **Failures:** rate limits and server errors are retried with backoff. A request that still
+  fails is recorded as an API error, not as a wrong answer.
+- **Testing:** the evaluator is tested against a fake local server (`tests/test_llm_eval.py`).
+  No real model has been scored yet.
+
+To get the raw datasets as JSONL (prompt, reference answer and full puzzle state):
+
+```bash
+python -m card_duel export data 2000 300
 ```
 
 ## Tasks in detail

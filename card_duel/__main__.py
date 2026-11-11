@@ -6,11 +6,15 @@
   fight SEED               play a fight yourself in the terminal
   benchmark [P] [F]        baseline scores on P test puzzles and F test fights
   examples DIR             write sample tasks and a full fight transcript
+  export DIR [TRAIN] [TEST]  write the puzzle and fight datasets as JSONL
+  eval-model MODEL [...]   score an OpenAI-compatible chat model (--help for options)
 """
 
 from __future__ import annotations
 
 import json
+import os
+import re
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -115,8 +119,59 @@ def _examples(args):
     print(f"wrote examples to {out}")
 
 
+def _export(args):
+    out = Path(args[0])
+    n_train = int(args[1]) if len(args) > 1 else 2000
+    n_test = int(args[2]) if len(args) > 2 else 300
+    out.mkdir(parents=True, exist_ok=True)
+    for split, n in (("train", n_train), ("test", n_test)):
+        with open(out / f"puzzles_{split}.jsonl", "w", encoding="utf-8") as f:
+            for p in dataset(split, n):
+                f.write(json.dumps({"id": p.id, "difficulty": p.difficulty, "prompt": p.prompt(),
+                                    "answer": ", ".join(p.solution), "puzzle": p.to_dict()}) + "\n")
+        with open(out / f"fights_{split}.jsonl", "w", encoding="utf-8") as f:
+            for spec in fight_dataset(split, n):
+                f.write(json.dumps({"id": spec.id, "seed": spec.seed, "enemy": spec.enemy,
+                                    "deck": list(spec.deck), "prompt": FightEnv(spec).intro()}) + "\n")
+    print(f"wrote {n_train} train and {n_test} test puzzles and fights to {out}")
+
+
+def _eval_model(args):
+    import argparse
+
+    from .llm_eval import ChatClient, eval_fights, eval_puzzles, summarize
+
+    ap = argparse.ArgumentParser(prog="python -m card_duel eval-model",
+                                 description="Score an OpenAI-compatible chat model. Reads OPENAI_API_KEY "
+                                             "and OPENAI_BASE_URL from the environment.")
+    ap.add_argument("model")
+    ap.add_argument("--task", choices=["puzzle", "fight"], default="puzzle")
+    ap.add_argument("--n", type=int, default=50, help="number of tasks (default 50)")
+    ap.add_argument("--split", choices=["train", "test"], default="test")
+    ap.add_argument("--difficulty", choices=["easy", "medium", "hard"])
+    ap.add_argument("--workers", type=int, default=4, help="parallel requests (default 4)")
+    ap.add_argument("--base-url", help="API base URL, e.g. https://api.openai.com/v1")
+    ap.add_argument("--temperature", type=float)
+    ap.add_argument("--max-tokens", type=int)
+    ap.add_argument("--window", type=int, default=16, help="fight messages kept after the opening (default 16)")
+    ap.add_argument("--out", help="JSONL file for per-task results")
+    a = ap.parse_args(args)
+    if not os.environ.get("OPENAI_API_KEY"):
+        print("note: OPENAI_API_KEY is not set; requests are sent without a key")
+    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", a.model)
+    out = a.out or f"outputs/{safe}-{a.task}-{a.split}.jsonl"
+    client = ChatClient(a.model, base_url=a.base_url, temperature=a.temperature, max_tokens=a.max_tokens)
+    if a.task == "puzzle":
+        records = eval_puzzles(client, dataset(a.split, a.n, a.difficulty), a.workers, out)
+    else:
+        records = eval_fights(client, fight_dataset(a.split, a.n), a.workers, out, a.window)
+    print(summarize(records))
+    print(f"{client.calls} API calls; per-task details in {out}")
+
+
 COMMANDS = {"puzzle": _puzzle, "solve": _solve, "check": _check, "fight": _fight,
-            "benchmark": _benchmark, "examples": _examples}
+            "benchmark": _benchmark, "examples": _examples, "export": _export,
+            "eval-model": _eval_model}
 
 
 def main(argv: list[str]) -> int:
