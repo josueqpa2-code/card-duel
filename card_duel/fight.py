@@ -40,6 +40,10 @@ def _cards(n: int) -> str:
     return f"{n} card" if n == 1 else f"{n} cards"
 
 
+MAX_LEVEL = 3
+HP_PER_LEVEL = 0.15  # each level: enemy +15% HP and +1 Might (+1 damage per hit)
+
+
 @dataclass(frozen=True)
 class FightSpec:
     seed: int
@@ -47,26 +51,34 @@ class FightSpec:
     enemy: str
     deck: tuple[str, ...]
     intent_offset: int
+    level: int = 0
 
     @property
     def id(self) -> str:
-        return f"fight-{self.seed}"
+        return f"fight-{self.seed}" + (f"-L{self.level}" if self.level else "")
+
+    @property
+    def enemy_max_hp(self) -> int:
+        return round(ENEMIES[self.enemy].max_hp * (1 + HP_PER_LEVEL * self.level))
 
 
-def make_fight(seed: int) -> FightSpec:
+def make_fight(seed: int, level: int = 0) -> FightSpec:
+    """The fight for a seed. Levels 1-3 make the same fight harder, for curricula."""
+    if not 0 <= level <= MAX_LEVEL:
+        raise ValueError(f"level must be 0..{MAX_LEVEL}")
     rng = Rng(mix(FIGHT_STREAM, seed))
     enemy = rng.choice(ENEMY_NAMES)
     deck = tuple(sorted(BASE_DECK + tuple(rng.weighted(EXTRA_POOL) for _ in range(EXTRA_CARDS))))
     offset = rng.below(len(ENEMIES[enemy].pattern))
     digest = int(hashlib.sha256(f"fight-{seed}".encode()).hexdigest()[:8], 16)
     split = "test" if digest % TEST_EVERY == 0 else "train"
-    return FightSpec(seed, split, enemy, deck, offset)
+    return FightSpec(seed, split, enemy, deck, offset, level)
 
 
-def fight_dataset(split: str = "train", n: int = 100, start_seed: int = 0) -> list[FightSpec]:
+def fight_dataset(split: str = "train", n: int = 100, start_seed: int = 0, level: int = 0) -> list[FightSpec]:
     out, seed = [], start_seed
     while len(out) < n:
-        spec = make_fight(seed)
+        spec = make_fight(seed, level)
         seed += 1
         if spec.split == split:
             out.append(spec)
@@ -88,7 +100,8 @@ class FightEnv:
         Rng(mix(FIGHT_STREAM, self.spec.seed, 2)).shuffle(deck)
         self.battle = Battle(
             player=Fighter("You", PLAYER_HP, PLAYER_HP),
-            enemy=Fighter(kind.name, kind.max_hp, kind.max_hp, shield=kind.start_shield),
+            enemy=Fighter(kind.name, self.spec.enemy_max_hp, self.spec.enemy_max_hp,
+                          shield=kind.start_shield, might=self.spec.level),
             energy=0, max_energy=3, draw_pile=deck, turn=0,
             seed=mix(FIGHT_STREAM, self.spec.seed, 3),
         )

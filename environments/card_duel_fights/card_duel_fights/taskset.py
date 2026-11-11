@@ -13,7 +13,7 @@ from typing import Literal
 
 import verifiers.v1 as vf
 
-from card_duel.fight import FightEnv, fight_dataset
+from card_duel.fight import FightEnv, fight_dataset, make_fight
 
 SYSTEM_PROMPT = ("Play the Card Duel fight. Each reply must contain exactly one action inside "
                  "<action></action>.")
@@ -22,6 +22,7 @@ SYSTEM_PROMPT = ("Play the Card Duel fight. Each reply must contain exactly one 
 class CardDuelFightConfig(vf.TasksetConfig):
     split: Literal["train", "test"] = "test"
     num_tasks: int = 200
+    level: Literal[0, 1, 2, 3] = 0  # each level: enemy +15% HP and +1 damage per hit
 
 
 class CardDuelFightData(vf.TaskData):
@@ -41,11 +42,11 @@ class CardDuelFightTaskset(vf.Taskset[CardDuelFightTask, CardDuelFightConfig]):
                     name=spec.id,
                     prompt=FightEnv(spec).intro(),
                     system_prompt=SYSTEM_PROMPT,
-                    info={"seed": spec.seed},
+                    info={"seed": spec.seed, "level": spec.level},
                 ),
                 cfg.task,
             )
-            for spec in fight_dataset(cfg.split, cfg.num_tasks)
+            for spec in fight_dataset(cfg.split, cfg.num_tasks, level=cfg.level)
         ]
 
 
@@ -55,7 +56,8 @@ class CardDuelFightEnvConfig(vf.EnvConfig):
 
 class CardDuelFightEnv(vf.Env[CardDuelFightEnvConfig]):
     async def run(self, task, agents) -> None:
-        fight = FightEnv(int(task.data.info["seed"]))
+        info = task.data.info
+        fight = FightEnv(make_fight(int(info["seed"]), int(info.get("level", 0))))
         async with agents.player.interaction(task) as interaction:
             segment = await interaction.turn()  # the task prompt holds the opening state
             while not segment.terminated:

@@ -3,7 +3,7 @@
   puzzle SEED              print the prompt for a puzzle
   solve SEED               print the puzzle's answer and how rare winning lines are
   check SEED "A, B, C"     score a play order for a puzzle
-  fight SEED               play a fight yourself in the terminal
+  fight SEED [LEVEL]       play a fight yourself in the terminal (level 0-3)
   benchmark [P] [F]        baseline scores on P test puzzles and F test fights
   examples DIR             write sample tasks and a full fight transcript
   export DIR [TRAIN] [TEST]  write the puzzle and fight datasets as JSONL
@@ -22,7 +22,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from .baselines import GreedyPlayer, PlannerPlayer, RandomPlayer, TwoTurnPlanner, run_fight
-from .fight import FightEnv, fight_dataset
+from .fight import MAX_LEVEL, FightEnv, fight_dataset, make_fight
 from .puzzles import dataset, generate, greedy_line, lookahead_line, random_line, score_answer, score_line
 
 
@@ -45,7 +45,7 @@ def _check(args):
 
 
 def _fight(args):
-    env = FightEnv(int(args[0]))
+    env = FightEnv(make_fight(int(args[0]), int(args[1]) if len(args) > 1 else 0))
     print(env.intro())
     while not env.done:
         try:
@@ -88,6 +88,18 @@ def benchmark(n_puzzles: int = 300, n_fights: int = 200) -> str:
         hp = sum(r.hp_left for r in wins) / len(wins) if wins else 0
         lines.append(f"| {player.name} | {len(wins) / len(results):.0%} | "
                      f"{sum(r.reward for r in results) / len(results):.3f} | {hp:.1f} |")
+    n_level = max(1, n_fights // 2)
+    levels = range(MAX_LEVEL + 1)
+    lines += ["", f"Fight levels (each adds +15% enemy HP and +1 damage per hit), "
+                  f"win rate on {n_level} test fights:", "",
+              "| Player | " + " | ".join(f"level {k}" for k in levels) + " |",
+              "|---" * (len(levels) + 1) + "|"]
+    for player in (GreedyPlayer(), PlannerPlayer()):
+        cells = []
+        for k in levels:
+            results = [run_fight(s, player) for s in fight_dataset("test", n_level, level=k)]
+            cells.append(f"{sum(r.won for r in results) / len(results):.0%}")
+        lines.append(f"| {player.name} | " + " | ".join(cells) + " |")
     return "\n".join(lines)
 
 
@@ -225,6 +237,8 @@ def _eval_model(args):
     ap.add_argument("--temperature", type=float)
     ap.add_argument("--max-tokens", type=int)
     ap.add_argument("--window", type=int, default=16, help="fight messages kept after the opening (default 16)")
+    ap.add_argument("--level", type=int, default=0, choices=range(MAX_LEVEL + 1),
+                    help="fight difficulty level 0-3 (default 0)")
     ap.add_argument("--out", help="JSONL file for per-task results")
     a = ap.parse_args(args)
     if not os.environ.get("OPENAI_API_KEY"):
@@ -235,7 +249,7 @@ def _eval_model(args):
     if a.task == "puzzle":
         records = eval_puzzles(client, dataset(a.split, a.n, a.difficulty), a.workers, out)
     else:
-        records = eval_fights(client, fight_dataset(a.split, a.n), a.workers, out, a.window)
+        records = eval_fights(client, fight_dataset(a.split, a.n, level=a.level), a.workers, out, a.window)
     print(summarize(records))
     print(f"{client.calls} API calls; per-task details in {out}")
 

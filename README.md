@@ -35,6 +35,17 @@ Fights: 200 from the test split.
 | planner | 81% | 0.559 | 11.0 |
 | planner (2 turns) | 85% | 0.567 | 10.7 |
 
+**Fight levels** make the same fights harder, for curricula and headroom. Each level adds +15%
+enemy HP and +1 enemy Might (+1 damage per hit). Win rate on 100 test fights:
+
+| Player | level 0 | level 1 | level 2 | level 3 |
+|---|---|---|---|---|
+| greedy | 52% | 7% | 2% | 2% |
+| planner | 79% | 38% | 12% | 3% |
+
+Choose a level with `make_fight(seed, level)` or `fight_dataset(split, n, level=k)`. The same
+setting is called `level` in both verifiers adapters and `--level` in `eval-model`.
+
 - **Puzzle difficulty is measured, not guessed.** "Easy" means a greedy player solves it.
   "Medium" and "hard" puzzles defeat the greedy player, and in hard ones fewer than 2% of all
   possible lines win.
@@ -57,7 +68,7 @@ python -m card_duel solve 12             # its answer, and how rare winning line
 python -m card_duel check 12 "Wind Up, Jab"
 python -m card_duel fight 3              # play a fight yourself
 python -m card_duel benchmark 300 200
-python -m unittest discover -s tests -t .   # 71 tests
+python -m unittest discover -s tests -t .   # 74 tests
 ```
 
 ```python

@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .fight import FightEnv, fight_dataset
+from .fight import FightEnv, fight_dataset, make_fight
 from .puzzles import Puzzle, dataset, score_answer
 
 PUZZLE_SYSTEM = ("Solve the Card Duel puzzle. Think it through, then give your final play order "
@@ -67,7 +67,8 @@ def load_puzzle_environment(num_train: int = 2000, num_eval: int = 200, difficul
 
 def _replay_with_text(state: dict) -> tuple[FightEnv, str]:
     """Rebuild the fight from its seed and the actions so far, plus the last observation."""
-    env = FightEnv(int(state["info"]["seed"]))
+    info = state["info"]
+    env = FightEnv(make_fight(int(info["seed"]), int(info.get("level", 0))))
     text = env.intro()
     for action in state.get(ACTIONS_KEY, []):
         text, *_ = env.step(action)
@@ -78,12 +79,14 @@ def _replay(state: dict) -> FightEnv:
     return _replay_with_text(state)[0]
 
 
-def _fight_rows(n: int, split: str) -> list[dict]:
+def _fight_rows(n: int, split: str, level: int = 0) -> list[dict]:
     return [{"question": FightEnv(spec).intro(), "answer": "", "task": "card-duel-fight",
-             "info": {"seed": spec.seed}} for spec in fight_dataset(split, n)]
+             "info": {"seed": spec.seed, "level": spec.level}}
+            for spec in fight_dataset(split, n, level=level)]
 
 
-def load_fight_environment(num_train: int = 2000, num_eval: int = 200, max_turns: int = 150, **kwargs):
+def load_fight_environment(num_train: int = 2000, num_eval: int = 200, max_turns: int = 150,
+                           level: int = 0, **kwargs):
     import verifiers as vf
     from datasets import Dataset
 
@@ -107,8 +110,8 @@ def load_fight_environment(num_train: int = 2000, num_eval: int = 200, max_turns
 
     rubric = vf.Rubric(funcs=[fight_reward, won, illegal_actions], weights=[1.0, 0.0, 0.0])
     return CardDuelFightEnv(
-        dataset=Dataset.from_list(_fight_rows(num_train, "train")),
-        eval_dataset=Dataset.from_list(_fight_rows(num_eval, "test")),
+        dataset=Dataset.from_list(_fight_rows(num_train, "train", level)),
+        eval_dataset=Dataset.from_list(_fight_rows(num_eval, "test", level)),
         system_prompt=FIGHT_SYSTEM, rubric=rubric, max_turns=max_turns, **kwargs)
 
 

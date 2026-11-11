@@ -91,6 +91,30 @@ class FightEnvTest(unittest.TestCase):
             self.assertIn(f"- {name} [", text)
 
 
+class LevelTest(unittest.TestCase):
+    def test_level_zero_is_the_default(self):
+        self.assertEqual(make_fight(9), make_fight(9, 0))
+        self.assertEqual(FightEnv(9).intro(), FightEnv(make_fight(9, 0)).intro())
+
+    def test_levels_scale_the_enemy(self):
+        base = FightEnv(make_fight(9, 0)).battle.enemy
+        for level in (1, 2, 3):
+            spec = make_fight(9, level)
+            enemy = FightEnv(spec).battle.enemy
+            self.assertEqual(enemy.might, level)
+            self.assertEqual(enemy.max_hp, round(base.max_hp * (1 + 0.15 * level)))
+            self.assertEqual((spec.enemy, spec.deck, spec.split), (make_fight(9).enemy, make_fight(9).deck,
+                                                                   make_fight(9).split))
+            self.assertIn(f"-L{level}", spec.id)
+        with self.assertRaises(ValueError):
+            make_fight(9, 4)
+
+    def test_higher_levels_are_harder(self):
+        wins = [sum(run_fight(s, PlannerPlayer()).won for s in fight_dataset("test", 30, level=k))
+                for k in (0, 3)]
+        self.assertGreater(wins[0], wins[1])
+
+
 class NoPeekingTest(unittest.TestCase):
     def test_players_ignore_the_hidden_draw_order(self):
         """Reordering the draw pile (same cards) must not change any player's choice."""
