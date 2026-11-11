@@ -57,7 +57,7 @@ python -m card_duel solve 12             # its answer, and how rare winning line
 python -m card_duel check 12 "Wind Up, Jab"
 python -m card_duel fight 3              # play a fight yourself
 python -m card_duel benchmark 300 200
-python -m unittest discover -s tests -t .   # 66 tests
+python -m unittest discover -s tests -t .   # 69 tests
 ```
 
 ```python
@@ -98,6 +98,19 @@ To get the raw datasets as JSONL (prompt, reference answer and full puzzle state
 ```bash
 python -m card_duel export data 2000 300
 ```
+
+Fine-tuning data comes from the train split only, as chat-format JSONL:
+
+```bash
+python -m card_duel export-sft data 1000 200
+```
+
+- **Puzzles:** each example ends with a worked solution. Every step comes from the engine, so
+  the reasoning is correct by construction, followed by the `<answer>` tag.
+- **Fights:** winning games played by the two-turn planner. 19 of the first 20 train fights
+  are wins.
+- **Checks:** tests confirm that every worked solution scores 1.0 and that fight transcripts
+  replay exactly.
 
 ## Tasks in detail
 

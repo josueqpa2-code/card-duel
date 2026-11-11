@@ -7,6 +7,7 @@
   benchmark [P] [F]        baseline scores on P test puzzles and F test fights
   examples DIR             write sample tasks and a full fight transcript
   export DIR [TRAIN] [TEST]  write the puzzle and fight datasets as JSONL
+  export-sft DIR [P] [F]   write fine-tuning chats: worked puzzle solutions, winning fights
   eval-model MODEL [...]   score an OpenAI-compatible chat model (--help for options)
 """
 
@@ -138,6 +139,26 @@ def _export(args):
     print(f"wrote {n_train} train and {n_test} test puzzles and fights to {out}")
 
 
+def _export_sft(args):
+    from .sft import fight_example, puzzle_example
+
+    out = Path(args[0])
+    n_puzzles = int(args[1]) if len(args) > 1 else 1000
+    n_fights = int(args[2]) if len(args) > 2 else 200
+    out.mkdir(parents=True, exist_ok=True)
+    with open(out / "sft_puzzles.jsonl", "w", encoding="utf-8") as f:
+        for p in dataset("train", n_puzzles):
+            f.write(json.dumps(puzzle_example(p)) + "\n")
+    kept = 0
+    with open(out / "sft_fights.jsonl", "w", encoding="utf-8") as f:
+        for spec in fight_dataset("train", n_fights):
+            ex = fight_example(spec)
+            if ex["won"]:  # keep only winning games as targets
+                f.write(json.dumps(ex) + "\n")
+                kept += 1
+    print(f"wrote {n_puzzles} puzzle solutions and {kept}/{n_fights} winning fights (train split) to {out}")
+
+
 def _eval_model(args):
     import argparse
 
@@ -173,7 +194,7 @@ def _eval_model(args):
 
 COMMANDS = {"puzzle": _puzzle, "solve": _solve, "check": _check, "fight": _fight,
             "benchmark": _benchmark, "examples": _examples, "export": _export,
-            "eval-model": _eval_model}
+            "export-sft": _export_sft, "eval-model": _eval_model}
 
 
 def main(argv: list[str]) -> int:
